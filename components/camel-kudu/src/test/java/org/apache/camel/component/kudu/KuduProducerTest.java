@@ -30,8 +30,15 @@ import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.CreateTableOptions;
+import org.apache.kudu.client.KuduClient;
+import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduScanner;
+import org.apache.kudu.client.RowResult;
+import org.apache.kudu.client.RowResultIterator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class KuduProducerTest extends AbstractKuduTest {
 
@@ -60,6 +67,18 @@ public class KuduProducerTest extends AbstractKuduTest {
 
                 from("direct:data")
                         .to("kudu:localhost:7051/TestTable?operation=insert")
+                        .to("mock:result");
+
+                from("direct:delete")
+                        .to("kudu:localhost:7051/TestTable?operation=delete")
+                        .to("mock:result");
+
+                from("direct:update")
+                        .to("kudu:localhost:7051/TestTable?operation=update")
+                        .to("mock:result");
+
+                from("direct:upsert")
+                        .to("kudu:localhost:7051/TestTable?operation=upsert")
                         .to("mock:result");
             }
         };
@@ -139,5 +158,84 @@ public class KuduProducerTest extends AbstractKuduTest {
 
         errorEndpoint.assertIsSatisfied();
         successEndpoint.assertIsSatisfied();
+    }
+
+    @Test
+    public void insertAndDelete() throws InterruptedException, KuduException {
+        createTestTable("TestTable");
+
+        errorEndpoint.expectedMessageCount(0);
+        successEndpoint.expectedMessageCount(2);
+
+        // Create a sample row that can be inserted in the test table
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", 5);
+        row.put("title", "Mr.");
+        row.put("name", "Samuel");
+        row.put("lastname", "Smith");
+        row.put("address", "4359  Plainfield Avenue");
+        sendBody("direct:insert", row);
+
+        // Then delete it
+        row = new HashMap<>();
+        row.put("id", 5);
+        sendBody("direct:delete", row);
+
+        errorEndpoint.assertIsSatisfied();
+        successEndpoint.assertIsSatisfied();
+
+        KuduClient client = ikc.getClient();
+        KuduScanner scanner = client.newScannerBuilder(client.openTable("TestTable")).build();
+        // The table shouldn't have any row
+        int rows = 0;
+        while (scanner.hasMoreRows()) {
+            RowResultIterator iterator = scanner.nextRows();
+            while (iterator.hasNext()) {
+                iterator.next();
+                rows++;
+            }
+        }
+        assertEquals(0, rows);
+    }
+
+    @Test
+    public void insertAndUpdate() throws InterruptedException, KuduException {
+        createTestTable("TestTable");
+
+        errorEndpoint.expectedMessageCount(0);
+        successEndpoint.expectedMessageCount(2);
+
+        // Create a sample row that can be inserted in the test table
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", 5);
+        row.put("title", "Mr.");
+        row.put("name", "Samuel");
+        row.put("lastname", "Smith");
+        row.put("address", "4359  Plainfield Avenue");
+        sendBody("direct:insert", row);
+
+        // Then update it
+        row = new HashMap<>();
+        row.put("id", 5);
+        row.put("name", "John");
+        sendBody("direct:update", row);
+
+        errorEndpoint.assertIsSatisfied();
+        successEndpoint.assertIsSatisfied();
+
+        KuduClient client = ikc.getClient();
+        KuduScanner scanner = client.newScannerBuilder(client.openTable("TestTable")).build();
+        int rows = 0;
+        while (scanner.hasMoreRows()) {
+            RowResultIterator iterator = scanner.nextRows();
+            while (iterator.hasNext()) {
+                RowResult result = iterator.next();
+                if (result.getInt("id") == 5) {
+                    assertEquals("John", result.getString("name"));
+                }
+                rows++;
+            }
+        }
+        assertEquals(1, rows);
     }
 }
