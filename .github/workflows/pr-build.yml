@@ -68,7 +68,7 @@ jobs:
         echo ":white_check_mark: Checkstyle passed" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
   build:
-    if: github.repository == 'apache/camel'
+    if: github.repository == 'sekikn/camel'
     permissions:
       issues: write
     runs-on: ubuntu-latest
