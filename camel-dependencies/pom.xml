@@ -380,7 +380,7 @@
     <lightcouch-version>0.2.0</lightcouch-version>
     <log4j2-version>2.18.0</log4j2-version>
     <logback-version>1.2.11</logback-version>
-    <lucene-version>8.11.1</lucene-version>
+    <lucene-version>8.11.2</lucene-version>
     <lucene-version-range>[8,9)</lucene-version-range>
     <mapstruct-version>1.5.2.Final</mapstruct-version>
     <maven-antrun-plugin-version>1.6</maven-antrun-plugin-version>
@@ -506,6 +506,8 @@
     <snakeyaml-engine-version>2.3</snakeyaml-engine-version>
     <snakeyaml-version>1.33</snakeyaml-version>
     <snmp4j-version>2.6.3_1</snmp4j-version>
+    <solr-jetty-version>9.4.27.v20200227</solr-jetty-version>
+    <solr-tika-version>1.24</solr-tika-version>
     <solr-version>8.11.2</solr-version>
     <solr-version-range>[8,9)</solr-version-range>
     <solr-zookeeper-version>3.6.2</solr-zookeeper-version>
